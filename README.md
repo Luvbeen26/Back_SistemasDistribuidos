@@ -1,52 +1,96 @@
-# Microservices Banking
+# Estructura del Proyecto banco-backend
 
-Este repositorio queda organizado como un monorepo con tres servicios:
+Este proyecto es un sistema bancario backend desarrollado con **Java Servlets**, **Hibernate ORM** y **Maven**.
+
+## Estructura de Carpetas
 
 ```
-Microservices/
-├── API-Gateway/
-├── auth-service/
-└── bank-core-service/
+banco-backend/
+├── pom.xml                                    # Configuración de Maven
+├── src/
+│   └── main/
+│       ├── java/mx/edu/uas/banco/
+│       │   ├── servlet/                       # Servlets REST
+│       │   │   ├── CuentaServlet.java
+│       │   │   ├── MovimientoServlet.java
+│       │   │   └── ClienteServlet.java
+│       │   ├── filter/                        # Filtros (Dev 3)
+│       │   │   └── JwtFilter.java
+│       │   ├── model/                         # Entidades JPA
+│       │   │   ├── Cliente.java
+│       │   │   ├── CuentaBancaria.java
+│       │   │   ├── Movimiento.java
+│       │   │   └── CajeroAtm.java
+│       │   ├── dao/                           # Data Access Objects
+│       │   │   ├── ClienteDAO.java
+│       │   │   ├── CuentaDAO.java
+│       │   │   └── MovimientoDAO.java
+│       │   └── util/                          # Utilidades
+│       │       ├── HibernateUtil.java         # SessionFactory singleton
+│       │       └── MqttPublisher.java         # Cliente MQTT
+│       ├── resources/
+│       │   └── hibernate.cfg.xml              # Configuración Hibernate
+│       └── webapp/
+│           └── WEB-INF/
+│               └── web.xml                    # Mapeo servlets/filtros
+└── target/                                    # Artefactos compilados
 ```
 
-## Responsabilidad de cada servicio
+## Configuración
 
-### `API-Gateway/`
-Entrada única para el frontend. Aquí irían reglas de ruteo, CORS centralizado, rate limiting y, si se desea, validación ligera de token antes de reenviar.
+### 1. Actualizar hibernate.cfg.xml
+Edita `src/main/resources/hibernate.cfg.xml` con los datos del servidor MySQL (IP del master de Dev 2):
 
-### `auth-service/`
-Autenticación y registro:
-- login
-- registro de usuario
-- emisión de JWT
-- validación de credenciales
-
-### `bank-core-service/`
-Lógica bancaria principal:
-- clientes
-- cuentas
-- movimientos
-- tarjetas
-- catálogos y consultas operativas
-
-## Estructura objetivo
-
-```text
-Microservices/
-├── API-Gateway/
-│   └── README.md
-├── auth-service/
-│   └── README.md
-└── bank-core-service/
-	└── README.md
+```xml
+<property name="hibernate.connection.url">jdbc:mysql://IP_MASTER:3306/banco_db</property>
+<property name="hibernate.connection.username">usuario</property>
+<property name="hibernate.connection.password">contraseña</property>
 ```
 
-## Mapeo sugerido de código actual
+### 2. Compilar el proyecto
+```bash
+mvn clean install
+```
 
-- `AuthServlet`, `JwtFilter`, `RegistrationService` -> `auth-service`
-- `ClienteServlet`, `CuentaServlet`, `MovimientoServlet`, DAOs y modelos de negocio -> `bank-core-service`
-- `CorsFilter` -> `API-Gateway` o `auth-service` si el gateway no se implementa todavía
+### 3. Desplegar en Tomcat
+Copiar el WAR generado a `$CATALINA_HOME/webapps/`
 
-## Siguiente paso
+## Endpoints
 
-El siguiente paso es mover el código a proyectos Maven separados para que cada servicio compile y despliegue por su cuenta.
+### Cliente
+- `GET /api/clientes` - Listar todos
+- `GET /api/clientes/{id}` - Obtener por ID
+- `POST /api/clientes` - Crear
+- `PUT /api/clientes` - Actualizar
+- `DELETE /api/clientes/{id}` - Eliminar
+
+### Cuenta
+- `GET /api/cuentas?clienteId={id}` - Listar cuentas del cliente
+- `GET /api/cuentas/{id}` - Obtener por ID
+- `POST /api/cuentas` - Crear
+- `PUT /api/cuentas` - Actualizar
+- `DELETE /api/cuentas/{id}` - Eliminar
+
+### Movimiento
+- `GET /api/movimientos?cuentaId={id}` - Listar movimientos
+- `GET /api/movimientos/{id}` - Obtener por ID
+- `POST /api/movimientos` - Crear
+- `PUT /api/movimientos` - Actualizar
+- `DELETE /api/movimientos/{id}` - Eliminar
+
+## Dependencias Principales
+
+- **Servlet API 4.0** - API de Servlets
+- **Hibernate 5.6** - ORM
+- **MySQL Connector 8.0** - Driver JDBC
+- **MQTT Client** - Publicación de eventos
+- **JWT (jjwt)** - Tokens JWT
+- **Gson** - Serialización JSON
+- **SLF4J + Logback** - Logging
+
+## Notas
+
+- Dev 3 es responsable del **JwtFilter**
+- Dev 2 proporciona IP del master para conectar BD
+- Reemplaza la clave secreta en `JwtFilter.java` por una real
+- Configura la URL de MQTT en `MqttPublisher.java`
