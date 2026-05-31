@@ -9,60 +9,85 @@ Servicio backend basado en Java Servlets, Maven, Hibernate y JWT.
 - Apache Tomcat 11
 - PostgreSQL accesible desde la aplicación
 
-## Estructura del despliegue
+## Estructura del despliegue (actualizada)
 
-Este módulo se empaqueta como WAR. El artefacto final se genera en `target/banksoft.war` y, por la configuración de Maven, Tomcat lo desplegará con el contexto `banksoft`.
+Este módulo se empaqueta como WAR. Por configuración del proyecto el artefacto final ahora se genera como `target/ROOT.war` (ver `pom.xml` `<finalName>`).
 
-La URL base queda así:
+La URL base cuando se despliega `ROOT.war` es:
 
-`http://localhost:8080/banksoft`
+`http://localhost:8080`
+
+> Nota: si existe un despliegue viejo `banksoft.war` o una carpeta `banksoft/` en `webapps`, elimínalos para evitar respuestas obsoletas.
 
 ## Compilación
 
 Desde la carpeta `auth-service`:
 
 ```bash
-*este es el bueno
 mvn clean package
 ```
 
-Si además quieres generar el JAR lanzable configurado en el proyecto, el mismo ciclo de Maven lo deja en `target/launcher.jar`.
-
 ## Despliegue en Tomcat
 
-Opción 1: copiar el WAR manualmente
+Opción manual: copiar el WAR generado como `ROOT.war` a Tomcat `webapps`:
 
-```bash
-copy target\banksoft.war "C:\Program Files\Apache Software Foundation\Tomcat 11.0\webapps\"
+```powershell
+copy target\ROOT.war "C:\Program Files\Apache Software Foundation\Tomcat 11.0\webapps\"
 ```
 
-Opción 2: reiniciar Tomcat si ya está ejecutándose y dejar que tome el WAR desde `webapps`.
+Luego reinicia Tomcat si está en ejecución, o deja que el contenedor despliegue el WAR al iniciar.
+
+Si migras desde el comportamiento anterior (context path `banksoft`), borra `banksoft.war` y la carpeta `banksoft/` en `webapps` antes de copiar `ROOT.war`.
 
 ## Endpoints
 
 ### Auth
 
-- `POST /api/auth/login`
-- `POST /api/auth/register`
+- `POST /api/auth/login`  → devuelve `AuthResponse` con `token`, `nombreUsuario` y `idUsuario`.
+- `POST /api/auth/register` → ahora devuelve la misma `AuthResponse` (token JWT) al registrar un usuario.
 
-## Configuración necesaria
+El token está firmado con HS256; conserva la `sub` (id del usuario) y otros claims como `nombreUsuario`.
 
-Antes de desplegar verifica estos archivos:
+## Variables de entorno y configuración relevantes
+
+- `JWT_SECRET` / `SECRET_KEY` (en el proyecto se usa `SECRET_KEY` como valor legado; asegúrate de que tenga al menos 32 bytes para HS256).
+- `ALGORITHM` (debe ser `HS256` para compatibilidad con los servicios Python del gateway).
+
+Archivos importantes para revisar antes de desplegar:
 
 - `src/main/resources/hibernate.cfg.xml`: conexión a PostgreSQL, usuario y contraseña
-- `src/main/resources/application.properties`: propiedades de la aplicación si las usas para valores externos
-- `src/main/java/banksoft/filter/JwtFilter.java`: clave secreta JWT y reglas de exclusión
-- `src/main/java/banksoft/util/`: inicialización de recursos, si aplica en tu entorno
+- `src/main/resources/application.properties`: propiedades externas
+- `src/main/java/banksoft/filter/JwtFilter.java` y `src/main/java/banksoft/util/JwtUtil.java`: configuración y firma/verificación del JWT
+
+## Integración con el API Gateway
+
+En el `API-Gateway` la variable debe apuntar al host donde corre Tomcat:
+
+- `AUTH_SERVICE_URL=http://localhost:8080`
+
+Y el `ACCOUNTS_SERVICE_URL` suele ser `http://localhost:8082` (ajusta según tu despliegue).
+
+## Uso y verificación rápida
+
+1. Ejecuta `mvn clean package`
+2. Copia `target/ROOT.war` a `webapps` (elimina `banksoft.war`/`banksoft/` si existen)
+3. Reinicia Tomcat
+4. Prueba login:
+
+```http
+POST http://localhost:8080/api/auth/login
+Content-Type: application/json
+
+{
+	"username": "tu_usuario",
+	"password": "tu_password"
+}
+```
+
+5. El response contendrá `token`. Usa ese token en los demás servicios como `Authorization: Bearer <token>`.
 
 ## Notas importantes
 
-- Las rutas de los servlets no cambian por mover el proyecto de carpeta; solo cambia el context path si cambias el nombre del WAR o la configuración de Tomcat.
-- Este proyecto usa Jakarta Servlet, así que debe ejecutarse en Tomcat 11 o un contenedor compatible con Jakarta EE 10/11.
-- Si el frontend o el API Gateway consumen este servicio, asegúrate de que apunten a `http://localhost:8080/banksoft`.
+- Si sigues viendo respuestas antiguas, probablemente Tomcat está sirviendo un WAR viejo (`banksoft.war`/`banksoft/`). Elimínalos y reinicia Tomcat.
+- Después de cambiar la clave secreta o algoritmo, los tokens anteriores dejarán de ser válidos; regenera tokens mediante `register` o `login`.
 
-## Verificación rápida
-
-1. Ejecuta `mvn clean package`
-2. Copia `target/banksoft.war` a `webapps`
-3. Inicia o reinicia Tomcat
-4. Prueba `http://localhost:8080/banksoft/api/auth/login`
