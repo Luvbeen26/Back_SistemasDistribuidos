@@ -164,8 +164,8 @@ public class AuthServlet extends HttpServlet {
             try {
                 Usuario creado = registrationService.register(registerRequest);
                 response.setStatus(HttpServletResponse.SC_CREATED);
-                AuthResponse resp = new AuthResponse("Usuario, cliente y cuenta creados exitosamente", true);
-                resp.setIdUsuario(creado.getIdUsuario());
+                String token = JwtUtil.generarToken(creado.getIdUsuario(), creado.getNombreUsuario());
+                AuthResponse resp = new AuthResponse(token, creado.getNombreUsuario(), creado.getIdUsuario());
                 response.getWriter().write(gson.toJson(resp));
             } catch (IllegalStateException ise) {
                 response.setStatus(HttpServletResponse.SC_CONFLICT);

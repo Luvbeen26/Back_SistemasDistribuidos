@@ -3,16 +3,19 @@ package banksoft.util;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import io.jsonwebtoken.security.MacAlgorithm;
 import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
 import java.util.Date;
 
 /**
  * Utilidad para generar y validar tokens JWT
  */
 public class JwtUtil {
-    private static final String SECRET_KEY = "tuClaveSuperSecretaDeAlMenos32CaracteresParaHS256";
+    private static final String SECRET_KEY = "tu-clave-segura-aqui-tu-clave-segura-aqui-123456";
     private static final long EXPIRATION_TIME = 86400000; // 24 horas en milisegundos
-    private static final SecretKey key = Keys.hmacShaKeyFor(SECRET_KEY.getBytes());
+    private static final SecretKey key = Keys.hmacShaKeyFor(SECRET_KEY.getBytes(StandardCharsets.UTF_8));
+    private static final MacAlgorithm ALG = Jwts.SIG.HS256;
 
     /**
      * Genera un token JWT para un usuario
@@ -26,7 +29,7 @@ public class JwtUtil {
                 .claim("nombreUsuario", nombreUsuario)
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME))
-                .signWith(key)
+                .signWith(key, ALG)
                 .compact();
     }
 

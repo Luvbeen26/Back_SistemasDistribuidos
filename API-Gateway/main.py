@@ -9,8 +9,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
-AUTH_SERVICE_URL = os.getenv("AUTH_SERVICE_URL", "http://localhost:8080/banksoft")
-BANK_CORE_SERVICE_URL = os.getenv("BANK_CORE_SERVICE_URL", "http://localhost:8081")
+AUTH_SERVICE_URL = os.getenv("AUTH_SERVICE_URL", "http://localhost:8080")
+ACCOUNTS_SERVICE_URL = os.getenv("ACCOUNTS_SERVICE_URL", "http://localhost:8082")
 
 
 app = FastAPI(title="API Gateway", version="1.0.0")
@@ -77,7 +77,7 @@ async def root() -> dict[str, str]:
     return {
         "message": "API Gateway running",
         "auth_service": AUTH_SERVICE_URL,
-        "bank_core_service": BANK_CORE_SERVICE_URL,
+        "accounts_service": ACCOUNTS_SERVICE_URL,
     }
 
 
@@ -100,14 +100,14 @@ async def proxy_auth_banksoft(path: str, request: Request):
 async def proxy_bank(path: str, request: Request):
     if path.startswith("auth/"):
         return await _proxy_request(request, AUTH_SERVICE_URL, f"api/{path}")
-    return await _proxy_request(request, BANK_CORE_SERVICE_URL, f"api/{path}")
+    return await _proxy_request(request, ACCOUNTS_SERVICE_URL, f"api/{path}")
 
 
 @app.api_route("/banksoft/api/{path:path}", methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"])
 async def proxy_bank_banksoft(path: str, request: Request):
     if path.startswith("auth/"):
         return await _proxy_request(request, AUTH_SERVICE_URL, f"api/{path}")
-    return await _proxy_request(request, BANK_CORE_SERVICE_URL, f"api/{path}")
+    return await _proxy_request(request, ACCOUNTS_SERVICE_URL, f"api/{path}")
 
 
 @app.api_route("/auth/{path:path}", methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"])
@@ -117,4 +117,4 @@ async def proxy_auth_legacy(path: str, request: Request):
 
 @app.api_route("/bank/{path:path}", methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"])
 async def proxy_bank_legacy(path: str, request: Request):
-    return await _proxy_request(request, BANK_CORE_SERVICE_URL, f"api/{path}")
+    return await _proxy_request(request, ACCOUNTS_SERVICE_URL, f"api/{path}")

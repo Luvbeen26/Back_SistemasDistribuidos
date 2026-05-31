@@ -22,7 +22,7 @@ import java.io.IOException;
 @WebFilter(urlPatterns = "/api/*")
 public class JwtFilter implements Filter {
     private static final Logger logger = LoggerFactory.getLogger(JwtFilter.class);
-    private static final String SECRET_KEY = "tu-clave-secreta-muy-larga-y-segura-aqui-2024";
+    private static final String SECRET_KEY = "tu-clave-segura-aqui";
     private static final String BEARER_PREFIX = "Bearer ";
 
     @Override
