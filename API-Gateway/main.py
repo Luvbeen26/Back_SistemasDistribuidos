@@ -11,7 +11,7 @@ load_dotenv()
 
 AUTH_SERVICE_URL = os.getenv("AUTH_SERVICE_URL", "http://localhost:8080")
 ACCOUNTS_SERVICE_URL = os.getenv("ACCOUNTS_SERVICE_URL", "http://localhost:8082")
-
+TRANSFER_SERVICE_URL = os.getenv("TRANSFER_SERVICE_URL", "http://localhost:8083")
 
 app = FastAPI(title="API Gateway", version="1.0.0")
 
@@ -78,6 +78,7 @@ async def root() -> dict[str, str]:
         "message": "API Gateway running",
         "auth_service": AUTH_SERVICE_URL,
         "accounts_service": ACCOUNTS_SERVICE_URL,
+        "transfer_service": TRANSFER_SERVICE_URL,
     }
 
 
@@ -85,36 +86,16 @@ async def root() -> dict[str, str]:
 async def health() -> dict[str, str]:
     return {"status": "ok"}
 
-
 @app.api_route("/api/auth/{path:path}", methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"])
 async def proxy_auth(path: str, request: Request):
     return await _proxy_request(request, AUTH_SERVICE_URL, f"api/auth/{path}")
 
 
-@app.api_route("/banksoft/api/auth/{path:path}", methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"])
-async def proxy_auth_banksoft(path: str, request: Request):
-    return await _proxy_request(request, AUTH_SERVICE_URL, f"api/auth/{path}")
+@app.api_route("/api/cuentas/{path:path}", methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"])
+async def proxy_cuentas(path: str, request: Request):
+    return await _proxy_request(request, ACCOUNTS_SERVICE_URL, f"api/cuentas/{path}")
 
 
-@app.api_route("/api/{path:path}", methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"])
-async def proxy_bank(path: str, request: Request):
-    if path.startswith("auth/"):
-        return await _proxy_request(request, AUTH_SERVICE_URL, f"api/{path}")
-    return await _proxy_request(request, ACCOUNTS_SERVICE_URL, f"api/{path}")
-
-
-@app.api_route("/banksoft/api/{path:path}", methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"])
-async def proxy_bank_banksoft(path: str, request: Request):
-    if path.startswith("auth/"):
-        return await _proxy_request(request, AUTH_SERVICE_URL, f"api/{path}")
-    return await _proxy_request(request, ACCOUNTS_SERVICE_URL, f"api/{path}")
-
-
-@app.api_route("/auth/{path:path}", methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"])
-async def proxy_auth_legacy(path: str, request: Request):
-    return await _proxy_request(request, AUTH_SERVICE_URL, f"api/auth/{path}")
-
-
-@app.api_route("/bank/{path:path}", methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"])
-async def proxy_bank_legacy(path: str, request: Request):
-    return await _proxy_request(request, ACCOUNTS_SERVICE_URL, f"api/{path}")
+@app.api_route("/api/movimientos/{path:path}", methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"])
+async def proxy_movimientos(path: str, request: Request):
+    return await _proxy_request(request, TRANSFER_SERVICE_URL, f"api/movimientos/{path}")

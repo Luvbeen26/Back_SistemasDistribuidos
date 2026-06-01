@@ -4,17 +4,15 @@ from fastapi.middleware.cors import CORSMiddleware
 from routers import api_router
 from utils.database import Base, engine
 
-# Importación necesaria para registrar los modelos en metadata.
-import models.cliente  # noqa: F401
-import models.cuenta_bancaria  # noqa: F401
-import models.movimiento  # noqa: F401
-import models.tarjetas_plastico  # noqa: F401
-import models.tipo_cuenta  # noqa: F401
-import models.tipo_movimiento  # noqa: F401
-import models.usuario  # noqa: F401
+
+import models.cliente  
+import models.cuenta_bancaria  
+import models.tarjetas_plastico 
+import models.tipo_cuenta 
+import models.usuario 
 
 
-app = FastAPI(title="Sistema de Control de Cultivo de Camarón")
+app = FastAPI(title="Accounts Service")
 
 app.add_middleware(
     CORSMiddleware,
@@ -23,6 +21,7 @@ app.add_middleware(
         "http://127.0.0.1:5173",
         "http://localhost:3000",
         "http://127.0.0.1:3000",
+        "http://localhost:4200"
     ],
     allow_credentials=True,
     allow_methods=["*"],
