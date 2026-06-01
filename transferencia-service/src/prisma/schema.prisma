@@ -1,0 +1,59 @@
+datasource + generator
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model TipoMovimiento {
+  id_tipo          Int         @id @default(autoincrement()) @map("id_tipo")
+  descripcion      String      @db.VarChar(50)
+  action_sum_rest  String?     @db.VarChar(1)
+
+  movimientos      Movimiento[]
+
+  @@map("tipo_movimiento")
+}
+
+model Movimiento {
+  id_movimiento          Int       @id @default(autoincrement())
+  id_cuenta              Int
+  id_tipo_movimiento     Int
+  fecha_hora             DateTime  @db.Timestamp(6)
+  id_sucursal            Int?
+  importe                Decimal   @db.Decimal(12, 2)
+  concepto               String?   @db.VarChar(100)
+  numero_autorizacion    String    @db.VarChar(6)
+  referencia_numerica    String    @db.VarChar(45)
+  referencia_alfanumerica String   @db.VarChar(45)
+  id_empleado            Int?
+  id_cajero_atm          Int?
+  clabe_interbancaria    String?   @db.VarChar(18)
+  estatus                String    @db.VarChar(20)
+
+  // Relaciones
+  cuenta         CuentaBancaria  @relation(fields: [id_cuenta], references: [id_cuenta])
+  tipo_movimiento TipoMovimiento @relation(fields: [id_tipo_movimiento], references: [id_tipo])
+  sucursal       Sucursal?       @relation(fields: [id_sucursal], references: [id_sucursal])
+  empleado       Empleado?       @relation(fields: [id_empleado], references: [id_empleado])
+  cajero_atm     CajeroAtm?      @relation(fields: [id_cajero_atm], references: [id_cajero])
+
+  @@map("movimiento")
+}
+
+
+model CuentasSavetransfer {
+  id_save   Int    @id @default(autoincrement())
+  id_cuenta Int
+  id_destino Int
+  tipo      String? @db.Char(1)
+
+  // Relaciones
+  cuenta  CuentaBancaria @relation("SaveOrigen",  fields: [id_cuenta],  references: [id_cuenta])
+  destino CuentaBancaria @relation("SaveDestino", fields: [id_destino], references: [id_cuenta])
+
+  @@map("cuentas_savetransfer")
+}
