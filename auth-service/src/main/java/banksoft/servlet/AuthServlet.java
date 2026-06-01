@@ -3,17 +3,16 @@ package banksoft.servlet;
 import com.google.gson.Gson;
 import banksoft.model.Usuario;
 import banksoft.model.Cliente;
-import banksoft.model.CuentaBancaria;
 import banksoft.dao.ClienteDAO;
 import banksoft.dao.UsuarioDAO;
-import banksoft.dao.CuentaDAO;
-
 import banksoft.dto.AuthResponse;
 import banksoft.dto.LoginRequest;
 import banksoft.dto.RegisterRequest;
 import banksoft.dto.UsuarioRequest;
 import banksoft.dto.ClienteRequest;
 import banksoft.util.JwtUtil;
+import banksoft.util.MqttPublisher;   // ← AGREGAR
+import banksoft.util.MqttTopics;      // ← AGREGAR
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,41 +22,33 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.math.BigDecimal;
-import java.time.LocalDate;
- 
+import java.time.Instant;
+
 import at.favre.lib.crypto.bcrypt.BCrypt;
 
-/**
- * Servlet para gestionar autenticación y autorización
- */
 @WebServlet(urlPatterns = "/api/auth/*", loadOnStartup = 1)
-
 public class AuthServlet extends HttpServlet {
     private static final Logger logger = LoggerFactory.getLogger(AuthServlet.class);
     private final Gson gson = new Gson();
     private UsuarioDAO usuarioDAO;
     private ClienteDAO clienteDAO;
     private banksoft.service.RegistrationService registrationService;
-    
+    private MqttPublisher mqtt;   // ← AGREGAR
+
     @Override
     public void init() throws ServletException {
-        this.usuarioDAO = new UsuarioDAO(); // se crea cuando el servlet se inicializa
+        this.usuarioDAO = new UsuarioDAO();
         this.clienteDAO = new ClienteDAO();
         this.registrationService = new banksoft.service.RegistrationService();
+        this.mqtt = MqttPublisher.getInstance();   // ← AGREGAR
     }
-
-    // Número/CLABE generation moved to CuentaDAO
 
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-
         response.setContentType("application/json");
         response.setCharacterEncoding("UTF-8");
-
         String pathInfo = request.getPathInfo();
-
         try {
             if (pathInfo == null || pathInfo.equals("/") || pathInfo.equals("/login")) {
                 login(request, response);
@@ -74,10 +65,6 @@ public class AuthServlet extends HttpServlet {
         }
     }
 
-    /**
-     * Endpoint POST /api/auth/login
-     * Autentica un usuario y retorna un token JWT
-     */
     private void login(HttpServletRequest request, HttpServletResponse response) throws IOException {
         try {
             LoginRequest loginRequest = null;
@@ -86,7 +73,6 @@ public class AuthServlet extends HttpServlet {
             } catch (Exception e) {
                 response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
                 response.getWriter().write(gson.toJson(new AuthResponse("JSON inválido en el request", false)));
-                logger.warn("JSON inválido en login: " + e.getMessage());
                 return;
             }
 
@@ -102,26 +88,44 @@ public class AuthServlet extends HttpServlet {
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                 response.getWriter().write(gson.toJson(new AuthResponse("Usuario o contraseña incorrectos", false)));
                 logger.warn("Intento de login fallido para usuario: " + loginRequest.getNombreUsuario());
+
+                // ← MQTT: login sospechoso — usuario no existe
+                mqtt.publish(MqttTopics.AUTH_LOGIN_SOSPECHOSO, String.format(
+                    "{\"usuario\":\"%s\", \"motivo\":\"usuario_no_existe\", \"timestamp\":\"%s\"}",
+                    loginRequest.getNombreUsuario(), Instant.now()
+                ));
                 return;
             }
 
-            // Verificar contraseña con BCrypt
             if (!BCrypt.verifyer().verify(loginRequest.getContrasena().toCharArray(), usuario.getContrasena()).verified) {
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                 response.getWriter().write(gson.toJson(new AuthResponse("Usuario o contraseña incorrectos", false)));
                 logger.warn("Contraseña incorrecta para usuario: " + loginRequest.getNombreUsuario());
+
+                // ← MQTT: login sospechoso — contraseña incorrecta
+                mqtt.publish(MqttTopics.AUTH_LOGIN_SOSPECHOSO, String.format(
+                    "{\"usuario\":\"%s\", \"motivo\":\"contrasena_incorrecta\", \"timestamp\":\"%s\"}",
+                    loginRequest.getNombreUsuario(), Instant.now()
+                ));
                 return;
             }
 
-            // obtener cliente asociado (si existe)
             Cliente cliente = clienteDAO.obtenerPorUsuarioId(usuario.getIdUsuario());
             Integer idCliente = cliente != null ? cliente.getIdCliente() : null;
-            // Generar token JWT incluyendo id_cliente si está disponible
             String token = JwtUtil.generarToken(usuario.getIdUsuario(), usuario.getNombreUsuario(), idCliente);
             AuthResponse authResponse = new AuthResponse(token, usuario.getNombreUsuario(), usuario.getIdUsuario(), idCliente);
             response.setStatus(HttpServletResponse.SC_OK);
             response.getWriter().write(gson.toJson(authResponse));
             logger.info("Login exitoso para usuario: " + usuario.getNombreUsuario());
+
+            // ← MQTT: login exitoso
+            mqtt.publish(MqttTopics.AUTH_LOGIN_EXITOSO, String.format(
+                "{\"usuarioId\":%d, \"usuario\":\"%s\", \"clienteId\":%s, \"timestamp\":\"%s\"}",
+                usuario.getIdUsuario(),
+                usuario.getNombreUsuario(),
+                idCliente != null ? idCliente.toString() : "null",
+                Instant.now()
+            ));
 
         } catch (Exception e) {
             logger.error("Error en login", e);
@@ -130,10 +134,6 @@ public class AuthServlet extends HttpServlet {
         }
     }
 
-    /**
-     * Endpoint POST /api/auth/register
-     * Registra un nuevo usuario
-     */
     private void register(HttpServletRequest request, HttpServletResponse response) throws IOException {
         try {
             RegisterRequest registerRequest = null;
@@ -142,7 +142,6 @@ public class AuthServlet extends HttpServlet {
             } catch (Exception e) {
                 response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
                 response.getWriter().write(gson.toJson(new AuthResponse("JSON inválido en el request", false)));
-                logger.warn("JSON inválido en registro: " + e.getMessage());
                 return;
             }
 
@@ -156,16 +155,13 @@ public class AuthServlet extends HttpServlet {
                 return;
             }
 
-            // Verificar existencia rápida antes de delegar
             Usuario usuarioExistente = usuarioDAO.obtenerPorNombreUsuario(usuarioRequest.getNombreUsuario());
             if (usuarioExistente != null) {
                 response.setStatus(HttpServletResponse.SC_CONFLICT);
                 response.getWriter().write(gson.toJson(new AuthResponse("El usuario ya existe", false)));
-                logger.warn("Intento de registro con usuario existente: " + usuarioRequest.getNombreUsuario());
                 return;
             }
 
-            // Delegar a RegistrationService (hace la transacción completa)
             try {
                 Usuario creado = registrationService.register(registerRequest);
                 response.setStatus(HttpServletResponse.SC_CREATED);
@@ -174,6 +170,13 @@ public class AuthServlet extends HttpServlet {
                 String token = JwtUtil.generarToken(creado.getIdUsuario(), creado.getNombreUsuario(), idClienteCreado);
                 AuthResponse resp = new AuthResponse(token, creado.getNombreUsuario(), creado.getIdUsuario(), idClienteCreado);
                 response.getWriter().write(gson.toJson(resp));
+
+                // ← MQTT: registro exitoso (opcional, útil para auditoría)
+                mqtt.publish(MqttTopics.AUTH_LOGIN_EXITOSO, String.format(
+                    "{\"usuarioId\":%d, \"usuario\":\"%s\", \"accion\":\"REGISTRO\", \"timestamp\":\"%s\"}",
+                    creado.getIdUsuario(), creado.getNombreUsuario(), Instant.now()
+                ));
+
             } catch (IllegalStateException ise) {
                 response.setStatus(HttpServletResponse.SC_CONFLICT);
                 response.getWriter().write(gson.toJson(new AuthResponse(ise.getMessage(), false)));

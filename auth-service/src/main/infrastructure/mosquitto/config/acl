@@ -1,0 +1,14 @@
+user auth-service
+topic write bank/auth/login-success
+topic write bank/auth/suspicious-login
+
+user accounts-service
+topic write bank/accounts/blocked
+topic write bank/accounts/unblocked
+topic write bank/accounts/limit-changed
+topic read bank/transfers/completed
+
+user transfer-service
+topic write bank/transfers/completed
+topic read bank/accounts/blocked
+topic read bank/accounts/limit-changed
