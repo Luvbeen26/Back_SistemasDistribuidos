@@ -91,3 +91,13 @@ Content-Type: application/json
 - Si sigues viendo respuestas antiguas, probablemente Tomcat está sirviendo un WAR viejo (`banksoft.war`/`banksoft/`). Elimínalos y reinicia Tomcat.
 - Después de cambiar la clave secreta o algoritmo, los tokens anteriores dejarán de ser válidos; regenera tokens mediante `register` o `login`.
 
+CREDENCIALES PARA los usuarios de MOSQUITTO
+ 	auth-service
+	auth1234
+
+	accounts-service
+	accounts1234	
+
+	transfer-service
+	transfer1234
+
