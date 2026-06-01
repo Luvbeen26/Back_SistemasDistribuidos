@@ -101,3 +101,67 @@ CREDENCIALES PARA los usuarios de MOSQUITTO
 	transfer-service
 	transfer1234
 
+## Levantar el sistema
+
+### Requisitos previos
+- Docker Desktop instalado y corriendo
+- Java 21 instalado
+- Tomcat 11 instalado
+
+### Orden de arranque
+
+#### 1. Levantar Mosquitto (broker MQTT)
+Desde la carpeta `auth-service/` en PowerShell:
+```powershell
+docker-compose up -d
+```
+Verificar que está corriendo:
+```powershell
+docker ps
+# Debe aparecer mosquitto-bank con status Up
+docker logs mosquitto-bank
+# Debe decir: mosquitto version 2.1.2 running
+```
+
+#### 2. Compilar el proyecto
+```powershell
+mvn clean package
+# Genera target/ROOT.war
+```
+
+#### 3. Desplegar en Tomcat
+```powershell
+copy target\ROOT.war C:\ruta\a\tomcat\webapps\ROOT.war
+```
+
+#### 4. Arrancar Tomcat
+```powershell
+C:\ruta\a\tomcat\bin\startup.bat
+```
+
+### Para apagar
+```powershell
+# Apagar Tomcat
+C:\ruta\a\tomcat\bin\shutdown.bat
+
+# Apagar Mosquitto
+docker-compose down
+```
+
+> **Importante:** Mosquitto debe estar corriendo **antes** de arrancar Tomcat.
+> Si Mosquitto no está activo, el sistema funciona pero sin eventos MQTT entre microservicios.
+
+## Arquitectura MQTT
+
+MQTT actúa como bus de eventos interno entre microservicios. El frontend nunca interactúa con Mosquitto directamente.
+
+### Topics
+| Topic | Publica | Evento |
+|---|---|---|
+| `bank/auth/login-success` | Auth Service | Login o registro exitoso |
+| `bank/auth/suspicious-login` | Auth Service | Usuario o contraseña incorrectos |
+| `bank/accounts/blocked` | Accounts Service | Cuenta bloqueada |
+| `bank/accounts/unblocked` | Accounts Service | Cuenta desbloqueada |
+| `bank/accounts/limit-changed` | Accounts Service | Límite de transferencia modificado |
+| `bank/transfers/completed` | Transfer Service | Transferencia registrada |
+
