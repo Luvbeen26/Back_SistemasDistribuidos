@@ -1,15 +1,15 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from sqlalchemy import desc
-from datetime import datetime, timedelta
 
+from datetime import datetime, timedelta
+from sqlalchemy import or_, desc
 from schema.cuentas import ChangeStatus,Limitday, idSaves
 from utils.dependencies import get_db, get_current_user
 from utils.security import decode_access_token, get_bearer_token
 from models.usuario import Usuario
 from models.cliente import Cliente
 from models.cuenta_bancaria import CuentaBancaria
-from models.movimiento import Movimiento
+
 from models.tarjetas_plastico import TarjetasPlastico
 
 
@@ -160,7 +160,7 @@ def get_limit(
 
     return {"limite_diario": cuenta.limite}
 
-from sqlalchemy import or_, desc
+
 
 @router.get("/check_num_account/{numero_cuenta}")
 def get_account(

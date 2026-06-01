@@ -26,9 +26,7 @@ class CuentaBancaria(Base):
 
     cliente: Mapped["Cliente | None"] = relationship("Cliente", back_populates="cuentas_bancarias")
     tipo_cuenta: Mapped["TipoCuenta"] = relationship("TipoCuenta", back_populates="cuentas_bancarias")
-    movimientos: Mapped[list["Movimiento"]] = relationship(
-        "Movimiento", back_populates="cuenta_bancaria", cascade="all, delete-orphan"
-    )
+    
     tarjetas_plastico: Mapped[list["TarjetasPlastico"]] = relationship(
         "TarjetasPlastico", back_populates="cuenta_bancaria", cascade="all, delete-orphan"
     )

@@ -95,3 +95,19 @@ export const getSaveTransfers = async (cuentaId) => {
     tipo: t.tipo,
   }));
 };
+
+export const getTotalEgresosHoy = async (cuentaId) => {
+  const inicioDia = new Date();
+  inicioDia.setHours(0, 0, 0, 0);
+
+  const resultado = await prisma.movimiento.aggregate({
+    where: {
+      id_cuenta: cuentaId,
+      fecha_hora: { gte: inicioDia },
+      id_tipo_movimiento: 6, 
+    },
+    _sum: { importe: true },
+  });
+
+  return Number(resultado._sum.importe ?? 0);
+};
