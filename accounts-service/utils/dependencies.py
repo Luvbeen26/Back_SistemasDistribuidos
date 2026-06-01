@@ -4,6 +4,7 @@ from fastapi import Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from models.usuario import Usuario
+from models.cliente import Cliente
 from utils.database import SessionLocal
 from utils.security import decode_access_token, get_bearer_token
 
@@ -36,5 +37,17 @@ def get_current_user(
     user = db.query(Usuario).filter(Usuario.id_usuario == user_id_int).first()
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuario no encontrado")
+
+    # If the token includes an id_cliente claim, verify it belongs to this user and attach it
+    id_cliente = data.get("id_cliente") or data.get("idCliente")
+    if id_cliente:
+        try:
+            id_cliente_int = int(id_cliente)
+            cliente = db.query(Cliente).filter(Cliente.id_cliente == id_cliente_int).first()
+            if cliente and getattr(cliente, "idUsuario", None) == user.id_usuario:
+                setattr(user, "id_cliente", id_cliente_int)
+        except (TypeError, ValueError):
+            # ignore invalid claim format
+            pass
 
     return user

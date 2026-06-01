@@ -93,6 +93,11 @@ public class RegistrationService {
             session.persist(cliente);
             session.flush();
 
+            // guardar el id del cliente también en el usuario para dejar la relación duplicada lista
+            nuevoUsuario.setIdCliente(cliente.getIdCliente());
+            session.merge(nuevoUsuario);
+            session.flush();
+
             // Crear cuenta con valores por defecto
             CuentaBancaria cuenta = new CuentaBancaria();
             cuenta.setIdCliente(cliente.getIdCliente());

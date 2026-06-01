@@ -7,6 +7,7 @@ public class AuthResponse {
     private String token;
     private String nombreUsuario;
     private Integer idUsuario;
+    private Integer idCliente;
     private String mensaje;
     private boolean exito;
 
@@ -16,6 +17,14 @@ public class AuthResponse {
         this.token = token;
         this.nombreUsuario = nombreUsuario;
         this.idUsuario = idUsuario;
+        this.exito = true;
+    }
+
+    public AuthResponse(String token, String nombreUsuario, Integer idUsuario, Integer idCliente) {
+        this.token = token;
+        this.nombreUsuario = nombreUsuario;
+        this.idUsuario = idUsuario;
+        this.idCliente = idCliente;
         this.exito = true;
     }
 
@@ -32,6 +41,9 @@ public class AuthResponse {
 
     public Integer getIdUsuario() { return idUsuario; }
     public void setIdUsuario(Integer idUsuario) { this.idUsuario = idUsuario; }
+
+    public Integer getIdCliente() { return idCliente; }
+    public void setIdCliente(Integer idCliente) { this.idCliente = idCliente; }
 
     public String getMensaje() { return mensaje; }
     public void setMensaje(String mensaje) { this.mensaje = mensaje; }

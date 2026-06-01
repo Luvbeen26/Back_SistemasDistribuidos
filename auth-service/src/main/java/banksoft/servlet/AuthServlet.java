@@ -37,11 +37,13 @@ public class AuthServlet extends HttpServlet {
     private static final Logger logger = LoggerFactory.getLogger(AuthServlet.class);
     private final Gson gson = new Gson();
     private UsuarioDAO usuarioDAO;
+    private ClienteDAO clienteDAO;
     private banksoft.service.RegistrationService registrationService;
     
     @Override
     public void init() throws ServletException {
         this.usuarioDAO = new UsuarioDAO(); // se crea cuando el servlet se inicializa
+        this.clienteDAO = new ClienteDAO();
         this.registrationService = new banksoft.service.RegistrationService();
     }
 
@@ -111,9 +113,12 @@ public class AuthServlet extends HttpServlet {
                 return;
             }
 
-            // Generar token JWT
-            String token = JwtUtil.generarToken(usuario.getIdUsuario(), usuario.getNombreUsuario());
-            AuthResponse authResponse = new AuthResponse(token, usuario.getNombreUsuario(), usuario.getIdUsuario());
+            // obtener cliente asociado (si existe)
+            Cliente cliente = clienteDAO.obtenerPorUsuarioId(usuario.getIdUsuario());
+            Integer idCliente = cliente != null ? cliente.getIdCliente() : null;
+            // Generar token JWT incluyendo id_cliente si está disponible
+            String token = JwtUtil.generarToken(usuario.getIdUsuario(), usuario.getNombreUsuario(), idCliente);
+            AuthResponse authResponse = new AuthResponse(token, usuario.getNombreUsuario(), usuario.getIdUsuario(), idCliente);
             response.setStatus(HttpServletResponse.SC_OK);
             response.getWriter().write(gson.toJson(authResponse));
             logger.info("Login exitoso para usuario: " + usuario.getNombreUsuario());
@@ -164,8 +169,10 @@ public class AuthServlet extends HttpServlet {
             try {
                 Usuario creado = registrationService.register(registerRequest);
                 response.setStatus(HttpServletResponse.SC_CREATED);
-                String token = JwtUtil.generarToken(creado.getIdUsuario(), creado.getNombreUsuario());
-                AuthResponse resp = new AuthResponse(token, creado.getNombreUsuario(), creado.getIdUsuario());
+                Cliente clienteCreado = clienteDAO.obtenerPorUsuarioId(creado.getIdUsuario());
+                Integer idClienteCreado = clienteCreado != null ? clienteCreado.getIdCliente() : null;
+                String token = JwtUtil.generarToken(creado.getIdUsuario(), creado.getNombreUsuario(), idClienteCreado);
+                AuthResponse resp = new AuthResponse(token, creado.getNombreUsuario(), creado.getIdUsuario(), idClienteCreado);
                 response.getWriter().write(gson.toJson(resp));
             } catch (IllegalStateException ise) {
                 response.setStatus(HttpServletResponse.SC_CONFLICT);

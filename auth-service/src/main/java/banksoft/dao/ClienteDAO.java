@@ -57,6 +57,17 @@ public class ClienteDAO {
         }
     }
 
+    public Cliente obtenerPorUsuarioId(Integer idUsuario) {
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            return session.createQuery("FROM Cliente WHERE idUsuario = :uid", Cliente.class)
+                    .setParameter("uid", idUsuario)
+                    .uniqueResult();
+        } catch (Exception e) {
+            logger.error("Error al obtener cliente por idUsuario", e);
+            return null;
+        }
+    }
+
     public void actualizar(Cliente cliente) {
         Transaction transaction = null;
         try (Session session = HibernateUtil.getSessionFactory().openSession()) {

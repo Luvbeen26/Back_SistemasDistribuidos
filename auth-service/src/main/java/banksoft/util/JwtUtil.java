@@ -34,6 +34,23 @@ public class JwtUtil {
     }
 
     /**
+     * Genera un token JWT incluyendo el idCliente como claim adicional cuando esté disponible.
+     */
+    public static String generarToken(Integer usuarioId, String nombreUsuario, Integer idCliente) {
+        io.jsonwebtoken.JwtBuilder builder = Jwts.builder()
+                .subject(String.valueOf(usuarioId))
+                .claim("nombreUsuario", nombreUsuario)
+                .issuedAt(new Date())
+                .expiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME));
+
+        if (idCliente != null) {
+            builder.claim("id_cliente", idCliente);
+        }
+
+        return builder.signWith(key, ALG).compact();
+    }
+
+    /**
      * Valida un token JWT y retorna sus claims
      * @param token Token JWT
      * @return Claims si es válido, null si no
