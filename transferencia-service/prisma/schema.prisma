@@ -1,0 +1,55 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Movimiento {
+  id_movimiento           Int            @id @default(autoincrement())
+  id_cuenta               Int
+  id_tipo_movimiento      Int
+  fecha_hora              DateTime       @db.Timestamp(6)
+  id_sucursal             Int?
+  importe                 Decimal        @db.Decimal(12, 2)
+  concepto                String?        @db.VarChar(100)
+  numero_autorizacion     String         @db.VarChar(6)
+  referencia_numerica     String         @db.VarChar(45)
+  referencia_alfanumerica String         @db.VarChar(45)
+  id_empleado             Int?
+  id_cajero_atm           Int?
+  clabe_interbancaria     String?        @db.VarChar(18)
+  estatus                 String         @db.VarChar(20)
+
+  tipo_movimiento         TipoMovimiento @relation(fields: [id_tipo_movimiento], references: [id_tipo])
+
+  @@map("movimiento")
+}
+
+model TipoMovimiento {
+  id_tipo         Int          @id @default(autoincrement())
+  descripcion     String       @db.VarChar(50)
+  action_sum_rest String?      @db.VarChar(1)
+
+  movimientos     Movimiento[]
+
+  @@map("tipo_movimiento")
+}
+
+model CuentasSavetransfer {
+  id_save    Int     @id @default(autoincrement())
+  id_cuenta  Int
+  id_destino Int
+  tipo       String? @db.Char(1)
+
+  @@map("cuentas_savetransfer")
+}
+
+model CuentaBancaria {
+  id_cuenta            Int       @id @default(autoincrement())
+  saldo                Decimal   @db.Decimal(10, 2)
+  // ...resto de campos
+
+  @@map("cuenta_bancaria")
+}

@@ -1,28 +1,19 @@
-const express = require("express");
-const cors = require("cors");
-const authRoutes = require('./routes/authRoutes')
-const encuestasRouter = require('./routes/encuestasRoutes')
-
-
-const errorHandler = require('./middlewares/errorHandler');
-const AISRouter = require('./routes/IA_ROUTES');
+import express from "express";
+import cors from "cors";
+import movimientoRouter from "./routes/movimiento.routes.js";
+import errorHandler from "./middlewares/errorHandler.js";
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
 
-//rutas
-app.use('/api/auth', authRoutes);
-app.use('/api/encuestas', encuestasRouter);
+app.use("/api/movimientos", movimientoRouter);
 
-// Error 404
 app.use((req, res, next) => {
-    res.status(404).json({
-        message: "Not Found"
-    });
-})
+  res.status(404).json({ message: "Not Found" });
+});
 
-app.use(errorHandler)
+app.use(errorHandler);
 
-module.exports = app;
+export default app;

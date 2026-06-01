@@ -10,6 +10,7 @@ from models.usuario import Usuario
 from models.cliente import Cliente
 from models.cuenta_bancaria import CuentaBancaria
 from models.movimiento import Movimiento
+from models.tarjetas_plastico import TarjetasPlastico
 
 
 router = APIRouter(prefix="/api/cuentas", tags=["cuentas"])
@@ -158,3 +159,72 @@ def get_limit(
         raise HTTPException(status_code=403, detail="No tienes permiso para acceder a esta cuenta")
 
     return {"limite_diario": cuenta.limite}
+
+from sqlalchemy import or_, desc
+
+@router.get("/check_num_account/{numero_cuenta}")
+def get_account(
+    numero_cuenta: str,
+    db: Session = Depends(get_db),
+  #  current_user: Usuario = Depends(get_current_user),
+):
+    # Buscar por número de cuenta o CLABE, tomando la más reciente con estatus "A"
+    cuenta = db.query(CuentaBancaria).filter(
+        or_(
+            CuentaBancaria.numero_cuenta == numero_cuenta,
+            CuentaBancaria.clabe_interbancaria == numero_cuenta,
+        ),
+        CuentaBancaria.estatus == "A",
+    ).order_by(desc(CuentaBancaria.fecha_apertura)).first()
+
+    if cuenta:
+        tarjeta_activa = next(
+            (t for t in cuenta.tarjetas_plastico if t.estatus == "activa"),
+            None
+        )
+        return {
+            "tipo": "C",
+            "id_cuenta": cuenta.id_cuenta,
+            "tipo_cuenta": cuenta.tipo_cuenta.descripcion,
+            "destinatario": get_nombre_completo(cuenta.cliente),
+            "id_tipo_cuenta": cuenta.id_tipo_cuenta,
+            "numero_cuenta": cuenta.numero_cuenta,
+            "clabe_interbancaria": cuenta.clabe_interbancaria,
+            "estatus": cuenta.estatus,
+            "fecha_apertura": cuenta.fecha_apertura,
+            "id_tarjeta" : tarjeta_activa.id_tarjeta if tarjeta_activa else None,
+            "tarjeta": tarjeta_activa.numero_tarjeta if tarjeta_activa else None,
+        }
+
+    # Fallback: buscar por número de tarjeta
+    tarjeta = db.query(TarjetasPlastico).filter(
+        TarjetasPlastico.numero_tarjeta == numero_cuenta,
+        TarjetasPlastico.estatus == "A",
+    ).first()
+
+    if tarjeta:
+        cuenta_de_tarjeta = tarjeta.cuenta_bancaria
+        return {
+            "tipo": "T",
+            "id_cuenta": cuenta_de_tarjeta.id_cuenta,
+            "tipo_cuenta": cuenta_de_tarjeta.tipo_cuenta.descripcion,
+            "id_tipo_cuenta": cuenta_de_tarjeta.id_tipo_cuenta,
+            "destinatario": get_nombre_completo(cuenta_de_tarjeta.cliente),
+            "numero_cuenta": cuenta_de_tarjeta.numero_cuenta,
+            "clabe_interbancaria": cuenta_de_tarjeta.clabe_interbancaria,
+            "estatus": cuenta_de_tarjeta.estatus,
+            "fecha_apertura": cuenta_de_tarjeta.fecha_apertura,
+            "id_tarjeta" : tarjeta.id_tarjeta,
+            "tarjeta": tarjeta.numero_tarjeta,
+        }
+
+    raise HTTPException(status_code=404, detail="Cuenta no encontrada")
+
+
+def get_nombre_completo(cliente) -> str:
+    partes = [
+        cliente.nombre,
+        cliente.apellido_1,
+        cliente.apellido_2,  # puede ser None
+    ]
+    return " ".join(p for p in partes if p)

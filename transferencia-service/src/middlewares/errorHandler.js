@@ -1,6 +1,6 @@
-const errorHandler = (err,req,res,next) =>{
+const errorHandler = (err, req, res, next) => {
     console.error(err.message || err);
-    res.status(500).json({ message : 'Error del servidor', error: err.message });
-}
+    res.status(500).json({ message: 'Error del servidor', error: err.message });
+};
 
-module.exports = errorHandler;
+export default errorHandler;

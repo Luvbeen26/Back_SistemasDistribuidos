@@ -1,6 +1,7 @@
 {
   "name": "back_angular_proyecto",
   "version": "1.0.0",
+  "type": "module",
   "main": "src/app.js",
   "scripts": {
     "start": "node src/server.js",
@@ -9,7 +10,9 @@
   "dependencies": {
     "@google/genai": "^2.3.0",
     "@google/generative-ai": "^0.24.1",
+    "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^7.8.0",
+    "@prisma/config": "^7.8.0",
     "bcrypt": "^6.0.0",
     "coerce": "^0.5.0",
     "cors": "^2.8.6",
