@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import desc
 from datetime import datetime, timedelta
 
-from schema.cuentas import ChangeStatus
+from schema.cuentas import ChangeStatus,Limitday
 from utils.dependencies import get_db, get_current_user
 from utils.security import decode_access_token, get_bearer_token
 from models.usuario import Usuario
@@ -62,9 +62,9 @@ def get_account(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No tienes permiso para acceder a esta cuenta")
 
     # Obtener últimos 100 movimientos ordenados por fecha descendente
-    movimientos = db.query(Movimiento).filter(
-        Movimiento.id_cuenta == id_cuenta
-    ).order_by(desc(Movimiento.fecha_hora)).limit(50).all()
+   # movimientos = db.query(Movimiento).filter(
+    #    Movimiento.id_cuenta == id_cuenta
+    #).order_by(desc(Movimiento.fecha_hora)).limit(50).all()
 
     return {
         "id_cuenta": cuenta.id_cuenta,
@@ -73,16 +73,18 @@ def get_account(
         "saldo": str(cuenta.saldo),
         "estatus": cuenta.estatus,
         "clabe_interbancaria": cuenta.clabe_interbancaria,
-        "movimientos": [
-            {
-                "id_movimiento": movimiento.id_movimiento,
-                "tipo_movimiento": movimiento.tipo_movimiento.descripcion,
-                "concepto": movimiento.concepto,
-                "monto": str(movimiento.importe),
-                "fecha": movimiento.fecha_hora.strftime("%Y-%m-%d %H:%M:%S"),
-            }
-            for movimiento in movimientos
-        ],
+        "limite_diario": cuenta.limite,
+     #   "movimientos": [
+      #      {
+        #        "id_movimiento": movimiento.id_movimiento,
+       #         "tipo_movimiento": movimiento.tipo_movimiento.descripcion,
+         #       "concepto": movimiento.concepto,
+          #      "monto": str(movimiento.importe),
+           #     "fecha": movimiento.fecha_hora.strftime("%Y-%m-%d %H:%M:%S"),
+            #    "accion" : movimiento.tipo_movimiento.action_sum_rest,
+            #}
+            #for movimiento in movimientos
+        #],
     }
 
 
@@ -117,3 +119,42 @@ def change_status(
         "msg" : f"Cuenta {id_cuenta} actualizada a estatus {cuenta.estatus}",
     }
 
+
+@router.patch("/limit_day/{id_cuenta}")
+def change_status(
+    id_cuenta: int,
+    limit: Limitday,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user),
+):
+    cuenta = db.query(CuentaBancaria).filter(CuentaBancaria.id_cuenta == id_cuenta).first()
+
+    if cuenta is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Cuenta no encontrada")
+
+    if cuenta.cliente.id_cliente != current_user.id_cliente:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No tienes permiso para acceder a esta cuenta")
+
+    cuenta.limite = limit.limite_diario
+    db.commit()
+    
+    return {
+        "msg" : f"Cuenta {id_cuenta} actualizada a limite {cuenta.limite}",
+    }
+
+
+@router.get("/get_limit_day/{id_cuenta}")
+def get_limit(
+    id_cuenta: int,
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user),
+):
+    cuenta = db.get(CuentaBancaria, id_cuenta)
+
+    if cuenta is None:
+        raise HTTPException(status_code=404, detail="Cuenta no encontrada")
+
+    if cuenta.cliente.id_cliente != current_user.id_cliente:
+        raise HTTPException(status_code=403, detail="No tienes permiso para acceder a esta cuenta")
+
+    return {"limite_diario": cuenta.limite}
