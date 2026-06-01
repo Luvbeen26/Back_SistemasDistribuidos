@@ -1,0 +1,19 @@
+services:
+  mosquitto:
+    image: eclipse-mosquitto
+    container_name: mosquitto-bank
+    ports:
+      - "1883:1883"
+      - "8883:8883"
+    volumes:
+      - ./src/main/infrastructure/mosquitto/config:/mosquitto/config
+      - ./src/main/infrastructure/mosquitto/certs:/mosquitto/certs
+      - ./src/main/infrastructure/mosquitto/data:/mosquitto/data
+      - ./src/main/infrastructure/mosquitto/log:/mosquitto/log
+    user: root
+    entrypoint: >
+      sh -c "chown mosquitto:mosquitto /mosquitto/config/passwd /mosquitto/config/acl &&
+            chmod 0700 /mosquitto/config/passwd &&
+            chmod 0700 /mosquitto/config/acl &&
+            exec mosquitto -c /mosquitto/config/mosquitto.conf"
+    restart: unless-stopped

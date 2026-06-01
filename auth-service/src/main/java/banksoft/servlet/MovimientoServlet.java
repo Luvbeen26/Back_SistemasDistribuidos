@@ -3,6 +3,8 @@ package banksoft.servlet;
 import com.google.gson.Gson;
 import banksoft.model.Movimiento;
 import banksoft.dao.MovimientoDAO;
+import banksoft.util.MqttPublisher;  // ← AGREGAR
+import banksoft.util.MqttTopics;     // ← AGREGAR
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -12,21 +14,24 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.time.Instant;  // ← AGREGAR
 import java.util.List;
 
-/**
- * Servlet para gestionar operaciones CRUD de Movimientos
- */
-@WebServlet(urlPatterns = "/api/movimientos", loadOnStartup = 3)
+@WebServlet(urlPatterns = "/api/movimientos/*", loadOnStartup = 3)
 public class MovimientoServlet extends HttpServlet {
     private static final Logger logger = LoggerFactory.getLogger(MovimientoServlet.class);
     private final MovimientoDAO movimientoDAO = new MovimientoDAO();
     private final Gson gson = new Gson();
+    private MqttPublisher mqtt;  // ← AGREGAR
+
+    @Override
+    public void init() throws ServletException {
+        this.mqtt = MqttPublisher.getInstance();  // ← AGREGAR
+    }
 
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-
         response.setContentType("application/json");
         response.setCharacterEncoding("UTF-8");
 
@@ -35,15 +40,13 @@ public class MovimientoServlet extends HttpServlet {
 
         try {
             if (cuentaIdParam != null) {
-                // GET /api/movimientos?cuentaId={id} - Obtener movimientos de la cuenta
                 Long cuentaId = Long.parseLong(cuentaIdParam);
                 List<Movimiento> movimientos = movimientoDAO.obtenerPorCuenta(cuentaId);
                 response.getWriter().write(gson.toJson(movimientos));
             } else if (pathInfo == null || pathInfo.equals("/")) {
-                response.getWriter().write("{\"error\": \"Use cuentaId query parameter\"}");
                 response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                response.getWriter().write("{\"error\": \"Use cuentaId query parameter\"}");
             } else {
-                // GET /api/movimientos/{id}
                 Long id = Long.parseLong(pathInfo.substring(1));
                 Movimiento movimiento = movimientoDAO.obtenerPorId(id);
                 if (movimiento != null) {
@@ -63,7 +66,6 @@ public class MovimientoServlet extends HttpServlet {
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-
         response.setContentType("application/json");
         response.setCharacterEncoding("UTF-8");
 
@@ -73,6 +75,24 @@ public class MovimientoServlet extends HttpServlet {
             response.setStatus(HttpServletResponse.SC_CREATED);
             response.getWriter().write(gson.toJson(movimiento));
             logger.info("Movimiento registrado: " + movimiento.getIdMovimiento());
+
+            // ← MQTT: publicar transferencia completada
+            // Solo publicar si es una transferencia (tiene cuenta origen y destino)
+            boolean esTransferencia = movimiento.getCuentaOrigen() != null
+                    && movimiento.getCuentaDestino() != null;
+
+            if (esTransferencia) {
+                mqtt.publish(MqttTopics.TRANSFERENCIA_COMPLETADA, String.format(
+                    "{\"movimientoId\":%d, \"cuentaOrigenId\":%d, \"cuentaDestinoId\":%d, \"monto\":%s, \"timestamp\":\"%s\"}",
+                    movimiento.getIdMovimiento(),
+                    movimiento.getCuentaOrigen().getIdCuenta(),
+                    movimiento.getCuentaDestino().getIdCuenta(),
+                    movimiento.getMonto(),
+                    Instant.now()
+                ));
+                logger.info("MQTT: transferencia completada, movimiento " + movimiento.getIdMovimiento());
+            }
+
         } catch (Exception e) {
             logger.error("Error en POST /movimientos", e);
             response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
@@ -83,7 +103,6 @@ public class MovimientoServlet extends HttpServlet {
     @Override
     protected void doPut(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-
         response.setContentType("application/json");
         response.setCharacterEncoding("UTF-8");
 
@@ -102,7 +121,6 @@ public class MovimientoServlet extends HttpServlet {
     @Override
     protected void doDelete(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-
         response.setContentType("application/json");
         response.setCharacterEncoding("UTF-8");
 
