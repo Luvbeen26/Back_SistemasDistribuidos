@@ -23,7 +23,8 @@ public class CuentaDAO {
             transaction.commit();
             logger.info("Cuenta guardada: " + cuenta.getNumeroCuenta());
         } catch (Exception e) {
-            if (transaction != null) transaction.rollback();
+            if (transaction != null)
+                transaction.rollback();
             logger.error("Error al guardar cuenta", e);
         }
     }
@@ -34,7 +35,8 @@ public class CuentaDAO {
         String numero;
         do {
             StringBuilder sb = new StringBuilder(16);
-            for (int i = 0; i < 16; i++) sb.append(RNG.nextInt(10));
+            for (int i = 0; i < 16; i++)
+                sb.append(RNG.nextInt(10));
             numero = sb.toString();
         } while (obtenerPorNumero(numero) != null);
         return numero;
@@ -49,9 +51,10 @@ public class CuentaDAO {
         // According to request: only first 3 digits (bank) must be controlled;
         // the remaining 14 digits can be random.
         StringBuilder rest = new StringBuilder(14);
-        for (int i = 0; i < 14; i++) rest.append(RNG.nextInt(10));
+        for (int i = 0; i < 14; i++)
+            rest.append(RNG.nextInt(10));
         String base17 = bank + rest.toString();
-        int[] weights = {3, 7, 1};
+        int[] weights = { 3, 7, 1 };
         int sum = 0;
         for (int i = 0; i < base17.length(); i++) {
             int digit = Character.getNumericValue(base17.charAt(i));
@@ -80,7 +83,7 @@ public class CuentaDAO {
         return cuenta;
     }
 
-    public CuentaBancaria obtenerPorId(Long id) {
+    public CuentaBancaria obtenerPorId(Integer id) {
         try (Session session = HibernateUtil.getSessionFactory().openSession()) {
             return session.get(CuentaBancaria.class, id);
         } catch (Exception e) {
@@ -111,9 +114,9 @@ public class CuentaDAO {
         }
     }
 
-    public List<CuentaBancaria> obtenerPorCliente(Long clienteId) {
+    public List<CuentaBancaria> obtenerPorCliente(Integer clienteId) {
         try (Session session = HibernateUtil.getSessionFactory().openSession()) {
-            return session.createQuery("FROM CuentaBancaria WHERE cliente.id = :clienteId", CuentaBancaria.class)
+            return session.createQuery("FROM CuentaBancaria WHERE idCliente = :clienteId", CuentaBancaria.class)
                     .setParameter("clienteId", clienteId)
                     .list();
         } catch (Exception e) {
@@ -130,12 +133,13 @@ public class CuentaDAO {
             transaction.commit();
             logger.info("Cuenta actualizada: " + cuenta.getIdCuenta());
         } catch (Exception e) {
-            if (transaction != null) transaction.rollback();
+            if (transaction != null)
+                transaction.rollback();
             logger.error("Error al actualizar cuenta", e);
         }
     }
 
-    public void eliminar(Long id) {
+    public void eliminar(Integer id) {
         Transaction transaction = null;
         try (Session session = HibernateUtil.getSessionFactory().openSession()) {
             transaction = session.beginTransaction();
@@ -146,7 +150,8 @@ public class CuentaDAO {
                 logger.info("Cuenta eliminada: " + id);
             }
         } catch (Exception e) {
-            if (transaction != null) transaction.rollback();
+            if (transaction != null)
+                transaction.rollback();
             logger.error("Error al eliminar cuenta", e);
         }
     }

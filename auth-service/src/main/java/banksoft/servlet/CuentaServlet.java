@@ -3,8 +3,8 @@ package banksoft.servlet;
 import com.google.gson.Gson;
 import banksoft.model.CuentaBancaria;
 import banksoft.dao.CuentaDAO;
-import banksoft.util.MqttPublisher;  // ← AGREGAR
-import banksoft.util.MqttTopics;     // ← AGREGAR
+import banksoft.util.MqttPublisher; // ← AGREGAR
+import banksoft.util.MqttTopics; // ← AGREGAR
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -14,7 +14,7 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.time.Instant;  // ← AGREGAR
+import java.time.Instant; // ← AGREGAR
 import java.util.List;
 
 @WebServlet(urlPatterns = "/api/cuentas/*", loadOnStartup = 2)
@@ -22,11 +22,11 @@ public class CuentaServlet extends HttpServlet {
     private static final Logger logger = LoggerFactory.getLogger(CuentaServlet.class);
     private final CuentaDAO cuentaDAO = new CuentaDAO();
     private final Gson gson = new Gson();
-    private MqttPublisher mqtt;  // ← AGREGAR
+    private MqttPublisher mqtt; // ← AGREGAR
 
     @Override
     public void init() throws ServletException {
-        this.mqtt = MqttPublisher.getInstance();  // ← AGREGAR
+        this.mqtt = MqttPublisher.getInstance(); // ← AGREGAR
     }
 
     @Override
@@ -40,14 +40,14 @@ public class CuentaServlet extends HttpServlet {
 
         try {
             if (clienteIdParam != null) {
-                Long clienteId = Long.parseLong(clienteIdParam);
+                Integer clienteId = Integer.parseInt(clienteIdParam);
                 List<CuentaBancaria> cuentas = cuentaDAO.obtenerPorCliente(clienteId);
                 response.getWriter().write(gson.toJson(cuentas));
             } else if (pathInfo == null || pathInfo.equals("/")) {
                 response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
                 response.getWriter().write("{\"error\": \"Use clienteId query parameter\"}");
             } else {
-                Long id = Long.parseLong(pathInfo.substring(1));
+                Integer id = Integer.parseInt(pathInfo.substring(1));
                 CuentaBancaria cuenta = cuentaDAO.obtenerPorId(id);
                 if (cuenta != null) {
                     response.getWriter().write(gson.toJson(cuenta));
@@ -103,46 +103,43 @@ public class CuentaServlet extends HttpServlet {
 
             // ← MQTT: detectar qué cambió y publicar evento correspondiente
             if (cuentaAnterior != null) {
-                boolean estabaActiva   = cuentaAnterior.isActiva();
-                boolean ahoraActiva    = cuenta.isActiva();
-                boolean cambioLimite   = cuentaAnterior.getLimiteTransferencia() != null
-                        && !cuentaAnterior.getLimiteTransferencia().equals(cuenta.getLimiteTransferencia());
+                boolean estabaActiva = "A".equalsIgnoreCase(cuentaAnterior.getEstatus());
+                boolean ahoraActiva = "A".equalsIgnoreCase(cuenta.getEstatus());
+                boolean cambioLimite = cuentaAnterior.getLimite() != null
+                        && !cuentaAnterior.getLimite().equals(cuenta.getLimite());
 
                 // Cuenta bloqueada
                 if (estabaActiva && !ahoraActiva) {
                     mqtt.publish(MqttTopics.CUENTA_BLOQUEADA, String.format(
-                        "{\"cuentaId\":%d, \"numeroCuenta\":\"%s\", \"clienteId\":%d, \"accion\":\"BLOQUEADA\", \"timestamp\":\"%s\"}",
-                        cuenta.getIdCuenta(),
-                        cuenta.getNumeroCuenta(),
-                        cuenta.getCliente() != null ? cuenta.getCliente().getIdCliente() : 0,
-                        Instant.now()
-                    ));
+                            "{\"cuentaId\":%d, \"numeroCuenta\":\"%s\", \"clienteId\":%d, \"accion\":\"BLOQUEADA\", \"timestamp\":\"%s\"}",
+                            cuenta.getIdCuenta(),
+                            cuenta.getNumeroCuenta(),
+                            cuenta.getIdCliente() != null ? cuenta.getIdCliente() : 0,
+                            Instant.now()));
                     logger.info("MQTT: cuenta bloqueada " + cuenta.getNumeroCuenta());
                 }
 
                 // Cuenta desbloqueada
                 if (!estabaActiva && ahoraActiva) {
                     mqtt.publish(MqttTopics.CUENTA_DESBLOQUEADA, String.format(
-                        "{\"cuentaId\":%d, \"numeroCuenta\":\"%s\", \"clienteId\":%d, \"accion\":\"DESBLOQUEADA\", \"timestamp\":\"%s\"}",
-                        cuenta.getIdCuenta(),
-                        cuenta.getNumeroCuenta(),
-                        cuenta.getCliente() != null ? cuenta.getCliente().getIdCliente() : 0,
-                        Instant.now()
-                    ));
+                            "{\"cuentaId\":%d, \"numeroCuenta\":\"%s\", \"clienteId\":%d, \"accion\":\"DESBLOQUEADA\", \"timestamp\":\"%s\"}",
+                            cuenta.getIdCuenta(),
+                            cuenta.getNumeroCuenta(),
+                            cuenta.getIdCliente() != null ? cuenta.getIdCliente() : 0,
+                            Instant.now()));
                     logger.info("MQTT: cuenta desbloqueada " + cuenta.getNumeroCuenta());
                 }
 
                 // Límite de transferencia cambiado
                 if (cambioLimite) {
                     mqtt.publish(MqttTopics.CUENTA_LIMITE_CAMBIO, String.format(
-                        "{\"cuentaId\":%d, \"numeroCuenta\":\"%s\", \"clienteId\":%d, \"limiteAnterior\":%s, \"limiteNuevo\":%s, \"timestamp\":\"%s\"}",
-                        cuenta.getIdCuenta(),
-                        cuenta.getNumeroCuenta(),
-                        cuenta.getCliente() != null ? cuenta.getCliente().getIdCliente() : 0,
-                        cuentaAnterior.getLimiteTransferencia(),
-                        cuenta.getLimiteTransferencia(),
-                        Instant.now()
-                    ));
+                            "{\"cuentaId\":%d, \"numeroCuenta\":\"%s\", \"clienteId\":%d, \"limiteAnterior\":%s, \"limiteNuevo\":%s, \"timestamp\":\"%s\"}",
+                            cuenta.getIdCuenta(),
+                            cuenta.getNumeroCuenta(),
+                            cuenta.getIdCliente() != null ? cuenta.getIdCliente() : 0,
+                            cuentaAnterior.getLimite(),
+                            cuenta.getLimite(),
+                            Instant.now()));
                     logger.info("MQTT: límite cambiado en cuenta " + cuenta.getNumeroCuenta());
                 }
             }
@@ -162,7 +159,7 @@ public class CuentaServlet extends HttpServlet {
 
         try {
             String pathInfo = request.getPathInfo();
-            Long id = Long.parseLong(pathInfo.substring(1));
+            Integer id = Integer.parseInt(pathInfo.substring(1));
             cuentaDAO.eliminar(id);
             response.getWriter().write("{\"mensaje\": \"Cuenta eliminada\"}");
             logger.info("Cuenta eliminada: " + id);

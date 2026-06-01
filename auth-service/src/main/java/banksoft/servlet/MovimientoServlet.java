@@ -3,8 +3,8 @@ package banksoft.servlet;
 import com.google.gson.Gson;
 import banksoft.model.Movimiento;
 import banksoft.dao.MovimientoDAO;
-import banksoft.util.MqttPublisher;  // ← AGREGAR
-import banksoft.util.MqttTopics;     // ← AGREGAR
+import banksoft.util.MqttPublisher; // ← AGREGAR
+import banksoft.util.MqttTopics; // ← AGREGAR
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -14,7 +14,7 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.time.Instant;  // ← AGREGAR
+import java.time.Instant; // ← AGREGAR
 import java.util.List;
 
 @WebServlet(urlPatterns = "/api/movimientos/*", loadOnStartup = 3)
@@ -22,11 +22,11 @@ public class MovimientoServlet extends HttpServlet {
     private static final Logger logger = LoggerFactory.getLogger(MovimientoServlet.class);
     private final MovimientoDAO movimientoDAO = new MovimientoDAO();
     private final Gson gson = new Gson();
-    private MqttPublisher mqtt;  // ← AGREGAR
+    private MqttPublisher mqtt; // ← AGREGAR
 
     @Override
     public void init() throws ServletException {
-        this.mqtt = MqttPublisher.getInstance();  // ← AGREGAR
+        this.mqtt = MqttPublisher.getInstance(); // ← AGREGAR
     }
 
     @Override
@@ -40,14 +40,14 @@ public class MovimientoServlet extends HttpServlet {
 
         try {
             if (cuentaIdParam != null) {
-                Long cuentaId = Long.parseLong(cuentaIdParam);
+                Integer cuentaId = Integer.parseInt(cuentaIdParam);
                 List<Movimiento> movimientos = movimientoDAO.obtenerPorCuenta(cuentaId);
                 response.getWriter().write(gson.toJson(movimientos));
             } else if (pathInfo == null || pathInfo.equals("/")) {
                 response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
                 response.getWriter().write("{\"error\": \"Use cuentaId query parameter\"}");
             } else {
-                Long id = Long.parseLong(pathInfo.substring(1));
+                Integer id = Integer.parseInt(pathInfo.substring(1));
                 Movimiento movimiento = movimientoDAO.obtenerPorId(id);
                 if (movimiento != null) {
                     response.getWriter().write(gson.toJson(movimiento));
@@ -76,20 +76,18 @@ public class MovimientoServlet extends HttpServlet {
             response.getWriter().write(gson.toJson(movimiento));
             logger.info("Movimiento registrado: " + movimiento.getIdMovimiento());
 
-            // ← MQTT: publicar transferencia completada
-            // Solo publicar si es una transferencia (tiene cuenta origen y destino)
-            boolean esTransferencia = movimiento.getCuentaOrigen() != null
-                    && movimiento.getCuentaDestino() != null;
+            // ← MQTT: publicar evento de movimiento
+            boolean esTransferencia = movimiento.getClabeInterbancaria() != null
+                    && !movimiento.getClabeInterbancaria().isBlank();
 
             if (esTransferencia) {
                 mqtt.publish(MqttTopics.TRANSFERENCIA_COMPLETADA, String.format(
-                    "{\"movimientoId\":%d, \"cuentaOrigenId\":%d, \"cuentaDestinoId\":%d, \"monto\":%s, \"timestamp\":\"%s\"}",
-                    movimiento.getIdMovimiento(),
-                    movimiento.getCuentaOrigen().getIdCuenta(),
-                    movimiento.getCuentaDestino().getIdCuenta(),
-                    movimiento.getMonto(),
-                    Instant.now()
-                ));
+                        "{\"movimientoId\":%d, \"cuentaId\":%d, \"clabeInterbancaria\":\"%s\", \"monto\":%s, \"timestamp\":\"%s\"}",
+                        movimiento.getIdMovimiento(),
+                        movimiento.getIdCuenta(),
+                        movimiento.getClabeInterbancaria(),
+                        movimiento.getImporte(),
+                        Instant.now()));
                 logger.info("MQTT: transferencia completada, movimiento " + movimiento.getIdMovimiento());
             }
 
@@ -126,7 +124,7 @@ public class MovimientoServlet extends HttpServlet {
 
         try {
             String pathInfo = request.getPathInfo();
-            Long id = Long.parseLong(pathInfo.substring(1));
+            Integer id = Integer.parseInt(pathInfo.substring(1));
             movimientoDAO.eliminar(id);
             response.getWriter().write("{\"mensaje\": \"Movimiento eliminado\"}");
             logger.info("Movimiento eliminado: " + id);

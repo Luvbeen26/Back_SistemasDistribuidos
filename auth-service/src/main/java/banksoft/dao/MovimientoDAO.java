@@ -20,12 +20,13 @@ public class MovimientoDAO {
             transaction.commit();
             logger.info("Movimiento guardado: " + movimiento.getIdMovimiento());
         } catch (Exception e) {
-            if (transaction != null) transaction.rollback();
+            if (transaction != null)
+                transaction.rollback();
             logger.error("Error al guardar movimiento", e);
         }
     }
 
-    public Movimiento obtenerPorId(Long id) {
+    public Movimiento obtenerPorId(Integer id) {
         try (Session session = HibernateUtil.getSessionFactory().openSession()) {
             return session.get(Movimiento.class, id);
         } catch (Exception e) {
@@ -34,9 +35,10 @@ public class MovimientoDAO {
         }
     }
 
-    public List<Movimiento> obtenerPorCuenta(Long cuentaId) {
+    public List<Movimiento> obtenerPorCuenta(Integer cuentaId) {
         try (Session session = HibernateUtil.getSessionFactory().openSession()) {
-            return session.createQuery("FROM Movimiento WHERE cuenta.id = :cuentaId ORDER BY fechaMovimiento DESC", Movimiento.class)
+            return session
+                    .createQuery("FROM Movimiento WHERE idCuenta = :cuentaId ORDER BY fechaHora DESC", Movimiento.class)
                     .setParameter("cuentaId", cuentaId)
                     .list();
         } catch (Exception e) {
@@ -53,12 +55,13 @@ public class MovimientoDAO {
             transaction.commit();
             logger.info("Movimiento actualizado: " + movimiento.getIdMovimiento());
         } catch (Exception e) {
-            if (transaction != null) transaction.rollback();
+            if (transaction != null)
+                transaction.rollback();
             logger.error("Error al actualizar movimiento", e);
         }
     }
 
-    public void eliminar(Long id) {
+    public void eliminar(Integer id) {
         Transaction transaction = null;
         try (Session session = HibernateUtil.getSessionFactory().openSession()) {
             transaction = session.beginTransaction();
@@ -69,7 +72,8 @@ public class MovimientoDAO {
                 logger.info("Movimiento eliminado: " + id);
             }
         } catch (Exception e) {
-            if (transaction != null) transaction.rollback();
+            if (transaction != null)
+                transaction.rollback();
             logger.error("Error al eliminar movimiento", e);
         }
     }
