@@ -44,6 +44,8 @@ model CuentasSavetransfer {
   tipo       String? @db.Char(1)
 
   @@map("cuentas_savetransfer")
+  @@unique([id_cuenta, id_destino, tipo])
+
 }
 
 model CuentaBancaria {

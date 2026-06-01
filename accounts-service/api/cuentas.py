@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import desc
 from datetime import datetime, timedelta
 
-from schema.cuentas import ChangeStatus,Limitday
+from schema.cuentas import ChangeStatus,Limitday, idSaves
 from utils.dependencies import get_db, get_current_user
 from utils.security import decode_access_token, get_bearer_token
 from models.usuario import Usuario
@@ -221,6 +221,61 @@ def get_account(
     raise HTTPException(status_code=404, detail="Cuenta no encontrada")
 
 
+
+
+@router.post("/infoSaves")
+def get_info_saves(
+    saves: list[idSaves],
+    db: Session = Depends(get_db),
+    current_user: Usuario = Depends(get_current_user),
+):
+    resultados = []
+
+    for save in saves:
+        if save.tipo == "C":
+            cuenta = db.query(CuentaBancaria).filter(
+                CuentaBancaria.id_cuenta == save.id_destino,
+                CuentaBancaria.estatus == "A",
+            ).first()
+
+            if not cuenta:
+                continue
+
+            tarjeta_activa = next(
+                (t for t in cuenta.tarjetas_plastico if t.estatus == "A"),
+                None
+            )
+            resultados.append({
+                "tipo": "C",
+                "destinatario": get_nombre_completo(cuenta.cliente),
+                "numero": cuenta.numero_cuenta,
+                #"tarjeta": tarjeta_activa.numero_tarjeta if tarjeta_activa else None,
+            })
+
+        elif save.tipo == "T":
+            tarjeta = db.query(TarjetasPlastico).filter(
+                TarjetasPlastico.id_tarjeta == save.id_destino,
+                TarjetasPlastico.estatus == "A",
+            ).first()
+
+            if not tarjeta:
+                continue
+
+            cuenta_de_tarjeta = tarjeta.cuenta_bancaria
+            resultados.append({
+                #"id_save": save.id_save,
+                "tipo": "T",
+               # "id_cuenta": cuenta_de_tarjeta.id_cuenta,
+                #"tipo_cuenta": cuenta_de_tarjeta.tipo_cuenta.descripcion,
+                "destinatario": get_nombre_completo(cuenta_de_tarjeta.cliente),
+                "numero": tarjeta.numero_tarjeta,
+                #"clabe_interbancaria": cuenta_de_tarjeta.clabe_interbancaria,
+                #"tarjeta": tarjeta.numero_tarjeta,
+            })
+
+    return resultados
+
+
 def get_nombre_completo(cliente) -> str:
     partes = [
         cliente.nombre,
@@ -228,3 +283,5 @@ def get_nombre_completo(cliente) -> str:
         cliente.apellido_2,  # puede ser None
     ]
     return " ".join(p for p in partes if p)
+
+

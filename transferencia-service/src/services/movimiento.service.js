@@ -59,10 +59,18 @@ export const RegMovimiento = async (data) => {
   
   ];
 
-  if (data.guardarCuenta) {
+  if (data.guardarCuenta && data.tipo_destino) {
     operaciones.push(
-      prisma.cuentasSavetransfer.create({
-        data: {
+      prisma.cuentasSavetransfer.upsert({
+        where: {
+          id_cuenta_id_destino_tipo: {
+            id_cuenta: data.id_origen,
+            id_destino: data.id_destino,
+            tipo: data.tipo_destino,
+          }
+        },
+        update: {},
+        create: {
           id_cuenta: data.id_origen,
           id_destino: data.id_destino,
           tipo: data.tipo_destino,
