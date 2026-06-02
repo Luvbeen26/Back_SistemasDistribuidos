@@ -27,28 +27,11 @@
 
         <!-- Clases mapeadas (Entidades JPA) -->
         <mapping class="banksoft.model.Usuario"/>
-        <mapping class="banksoft.model.UbicacionCajero"/>
-        <mapping class="banksoft.model.TipoUsuario"/>
-        <mapping class="banksoft.model.TipoMovimiento"/>
-        <mapping class="banksoft.model.TipoCuenta"/>
-        <mapping class="banksoft.model.TipoContrato"/>
-        <mapping class="banksoft.model.TarjetasPlastico"/>
-        <mapping class="banksoft.model.Sucursal"/>
-        <mapping class="banksoft.model.PuestoTrabajo"/>
-        <mapping class="banksoft.model.Municipio"/>
-        <mapping class="banksoft.model.Movimiento"/>
-        <mapping class="banksoft.model.Localidad"/>
-        <mapping class="banksoft.model.InfoEmpresa"/>
-        <mapping class="banksoft.model.HistorialSueldos"/>
-        <mapping class="banksoft.model.Estado"/>
-        <mapping class="banksoft.model.Empleado"/>
-        <mapping class="banksoft.model.DepartamentoTrabajo"/>
-        <mapping class="banksoft.model.CuentasSavetransfer"/>
         <mapping class="banksoft.model.CuentaBancaria"/>
         <mapping class="banksoft.model.CodigoPostal"/>
         <mapping class="banksoft.model.Cliente"/>
-        <mapping class="banksoft.model.CatalogoBancos"/>
-        <mapping class="banksoft.model.CajeroAtm"/>
+
+        
 
     </session-factory>
 </hibernate-configuration>

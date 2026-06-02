@@ -40,3 +40,15 @@ class ChangeStatus(BaseModel):
     horas_bloqueo: int | None = None
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class Limitday (BaseModel):
+    limite_diario: int
+
+    model_config = ConfigDict(from_attributes=True)
+
+class idSaves(BaseModel):
+	id_destino: int
+	tipo: str
+
+	model_config = ConfigDict(from_attributes=True)
