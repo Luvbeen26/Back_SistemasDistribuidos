@@ -22,11 +22,11 @@ public class MovimientoServlet extends HttpServlet {
     private static final Logger logger = LoggerFactory.getLogger(MovimientoServlet.class);
     private final MovimientoDAO movimientoDAO = new MovimientoDAO();
     private final Gson gson = new Gson();
-    private MqttPublisher mqtt; // ← AGREGAR
+    private MqttPublisher mqtt;
 
     @Override
     public void init() throws ServletException {
-        this.mqtt = MqttPublisher.getInstance(); // ← AGREGAR
+        this.mqtt = MqttPublisher.getInstance(); 
     }
 
     @Override
@@ -76,7 +76,6 @@ public class MovimientoServlet extends HttpServlet {
             response.getWriter().write(gson.toJson(movimiento));
             logger.info("Movimiento registrado: " + movimiento.getIdMovimiento());
 
-            // ← MQTT: publicar evento de movimiento
             boolean esTransferencia = movimiento.getClabeInterbancaria() != null
                     && !movimiento.getClabeInterbancaria().isBlank();
 

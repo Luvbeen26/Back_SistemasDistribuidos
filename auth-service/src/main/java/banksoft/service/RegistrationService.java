@@ -19,10 +19,7 @@ public class RegistrationService {
     private static final Logger logger = LoggerFactory.getLogger(RegistrationService.class);
     private final SecureRandom rng = new SecureRandom();
 
-    /**
-     * Registra usuario, cliente y cuenta en una sola transacción.
-     * Devuelve el Usuario persistido (con id generado).
-     */
+    /** Registra usuario, cliente y cuenta en una sola transacción.     */
     public Usuario register(RegisterRequest request) throws Exception {
         if (request == null || request.getUsuario() == null || request.getCliente() == null) {
             throw new IllegalArgumentException("Request de registro incompleto");
@@ -30,7 +27,7 @@ public class RegistrationService {
 
         Usuario nuevoUsuario = new Usuario();
         nuevoUsuario.setNombreUsuario(request.getUsuario().getNombreUsuario());
-        // la contraseña debe venir ya en texto plano; se encripta antes de persistir
+        //la contraseña debe venir ya en texto plano;
         nuevoUsuario.setContrasena(request.getUsuario().getContrasena());
         nuevoUsuario.setEstatus("A");
 
