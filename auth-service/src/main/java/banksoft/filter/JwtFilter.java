@@ -1,5 +1,6 @@
 package banksoft.filter;
 
+import banksoft.util.AppProperties;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
@@ -14,6 +15,7 @@ import jakarta.servlet.annotation.WebFilter;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 
 /**
  * Filtro JWT para validar tokens en peticiones a los endpoints protegidos
@@ -22,7 +24,8 @@ import java.io.IOException;
 @WebFilter(urlPatterns = "/api/*")
 public class JwtFilter implements Filter {
     private static final Logger logger = LoggerFactory.getLogger(JwtFilter.class);
-    private static final String SECRET_KEY = "tu-clave-segura-aqui-tu-clave-segura-aqui-123456";
+    private static final String SECRET_KEY = AppProperties.getRequired("jwt.secret");
+    private static final SecretKey KEY = Keys.hmacShaKeyFor(SECRET_KEY.getBytes(StandardCharsets.UTF_8));
     private static final String BEARER_PREFIX = "Bearer ";
 
     @Override
@@ -57,9 +60,8 @@ public class JwtFilter implements Filter {
         String token = authHeader.substring(BEARER_PREFIX.length());
 
         try {
-            SecretKey key = Keys.hmacShaKeyFor(SECRET_KEY.getBytes());
             Claims claims = Jwts.parser()
-                    .verifyWith(key)
+                    .verifyWith(KEY)
                     .build()
                     .parseSignedClaims(token)
                     .getPayload();

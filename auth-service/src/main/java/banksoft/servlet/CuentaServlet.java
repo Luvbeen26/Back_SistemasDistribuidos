@@ -3,8 +3,8 @@ package banksoft.servlet;
 import com.google.gson.Gson;
 import banksoft.model.CuentaBancaria;
 import banksoft.dao.CuentaDAO;
-import banksoft.util.MqttPublisher; // ← AGREGAR
-import banksoft.util.MqttTopics; // ← AGREGAR
+import banksoft.util.MqttPublisher; 
+import banksoft.util.MqttTopics; 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -14,7 +14,7 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.time.Instant; // ← AGREGAR
+import java.time.Instant;
 import java.util.List;
 
 @WebServlet(urlPatterns = "/api/cuentas/*", loadOnStartup = 2)
