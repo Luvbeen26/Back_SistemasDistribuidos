@@ -30,6 +30,8 @@
         <mapping class="banksoft.model.CuentaBancaria"/>
         <mapping class="banksoft.model.CodigoPostal"/>
         <mapping class="banksoft.model.Cliente"/>
+        <mapping class="banksoft.model.Movimiento"/>
+        <mapping class="banksoft.model.CatalogoBancos"/>
 
         
 

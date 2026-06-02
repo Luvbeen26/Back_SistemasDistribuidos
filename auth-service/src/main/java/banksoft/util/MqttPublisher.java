@@ -52,6 +52,7 @@ public class MqttPublisher {
             options.setUserName(MQTT_USER);
             options.setPassword(MQTT_PASS.toCharArray());
             options.setSocketFactory(buildSslContext().getSocketFactory());
+            options.setHttpsHostnameVerificationEnabled(false);
 
             client.connect(options);
             logger.info("MQTT conectado a {} como {}", BROKER_URL, CLIENT_ID);
