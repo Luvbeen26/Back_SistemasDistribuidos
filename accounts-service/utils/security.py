@@ -36,19 +36,13 @@ def _normalize_token(token: str) -> str:
 def get_bearer_token(
     credentials: HTTPAuthorizationCredentials | None = Depends(http_bearer),
 ) -> str:
-    """Return raw bearer token extracted by HTTPBearer dependency.
 
-    Using HTTPBearer here registers the HTTP Bearer security scheme in OpenAPI
-    so the Swagger UI will show the Authorize button. The function returns
-    the raw token string for internal use.
-    """
     if not credentials or not credentials.credentials:
         raise HTTPException(status_code=401, detail="Token no proporcionado")
     return _normalize_token(credentials.credentials)
 
 
 def decode_access_token(token: str) -> dict:
-    """Decode and validate a JWT access token string."""
     token = _normalize_token(token)
     if not token:
         raise HTTPException(status_code=401, detail="Token no proporcionado")
